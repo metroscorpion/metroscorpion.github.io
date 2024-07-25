@@ -1,4 +1,4 @@
-import { m as mat4Impl, v as vec3Impl, a as vec4Impl } from './notMyStuff.js';
+import { m as mat4Impl, v as vec3Impl, a as vec4Impl } from './nodeStuff-C_Wmvcs5.js';
 
 class BindGroupLayouts {
     camera;
@@ -1505,13 +1505,13 @@ class CameraInputHandler extends Control {
         [this.right, false],
     ]);
     cameraList = [];
-    constructor(context) {
+    constructor(context, abortController) {
         super(context);
         this.window = window;
         this.canvas = context.canvas;
-        this.window.addEventListener('keydown', (e) => this.sendInputs(e, true));
-        this.window.addEventListener('keyup', (e) => this.sendInputs(e, false));
-        this.canvas.addEventListener('wheel', (e) => this.sendZoom(e));
+        this.window.addEventListener('keydown', (e) => this.sendInputs(e, true), { signal: abortController.signal });
+        this.window.addEventListener('keyup', (e) => this.sendInputs(e, false), { signal: abortController.signal });
+        this.canvas.addEventListener('wheel', (e) => this.sendZoom(e), { signal: abortController.signal });
     }
     register(camera) {
         this.cameraList.push(camera);
@@ -1550,13 +1550,13 @@ class ScreenToWorldInterpreter extends Control {
     worldRayFloorIntersectionPoint = vec3Impl.create();
     //update how the floor is handled if you are going to implement more complicated flooring.
     //currently floor is assumed to be a flat plane with up set as (x:0,y:1,z:0) at position(0,0,0);
-    constructor(context) {
+    constructor(context, abortController) {
         super(context);
         this.window = window;
         this.canvas = context.canvas;
         this.floor = context.floor;
         this.camera = context.camera;
-        this.addEventListeners();
+        this.addEventListeners(abortController);
     }
     register(acceptor) {
         this.acceptorList.push(acceptor);
@@ -1582,9 +1582,9 @@ class ScreenToWorldInterpreter extends Control {
         this.floor.getClosestValidPoint(this.worldRayFloorIntersectionPoint, this.worldRayFloorIntersectionPoint);
         this.notifyListeners();
     }
-    addEventListeners() {
-        this.canvas.addEventListener('contextmenu', (e) => this.catchEvent(e));
-        this.canvas.addEventListener('mousedown', (e) => this.translateClickToWorld(e));
+    addEventListeners(abortController) {
+        this.canvas.addEventListener('contextmenu', (e) => this.catchEvent(e), { signal: abortController.signal });
+        this.canvas.addEventListener('mousedown', (e) => this.translateClickToWorld(e), { signal: abortController.signal });
     }
     updateClickPosition(e) {
         vec4Impl.set(2 * ((e.offsetX * this.window.devicePixelRatio / this.canvas.width) - 0.5), -2 * ((e.offsetY * this.window.devicePixelRatio / this.canvas.height) - 0.5), -1.0, 1.0, this.clickPosition);
@@ -1615,10 +1615,14 @@ class Controls {
     cameraControls;
     worldCursorControls;
     controls;
+    abortController = new AbortController();
     constructor(context) {
-        this.cameraControls = new CameraInputHandler(context);
-        this.worldCursorControls = new ScreenToWorldInterpreter(context);
+        this.cameraControls = new CameraInputHandler(context, this.abortController);
+        this.worldCursorControls = new ScreenToWorldInterpreter(context, this.abortController);
         this.controls = [this.cameraControls, this.worldCursorControls];
+    }
+    abortEventListeners() {
+        this.abortController.abort("scene destoyed");
     }
 }
 
@@ -1882,6 +1886,9 @@ class Scene {
         }
         this.systems.execute();
     }
+    destroy() {
+        this.controls.abortEventListeners();
+    }
 }
 
 const canvas = document.querySelector('canvas');
@@ -1920,6 +1927,7 @@ function frame() {
     }
     //TODO:flesh out states and transitions for current scene based on state. Game over scene, tutorial scene, Main menu scene, etc...
     if (scene.isGameOver()) {
+        scene.destroy();
         scene = new Scene(canvas);
     }
     //large spans of time due to either being minimized or lag are simply discarded. 
