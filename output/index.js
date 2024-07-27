@@ -1518,6 +1518,20 @@ function interpolate(start, end, x) {
         return end;
     return start + ((end - start) * x);
 }
+function cancelEvent(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+}
+function translateTouchStartToMouseEvent(e) {
+    if (e.type !== 'touchstart') {
+        cancelEvent(e);
+    }
+    for (let touch of e.changedTouches) {
+        touch['button'] = 2;
+        let mouseEvent = new MouseEvent('mousedown', touch);
+        e.target.dispatchEvent(mouseEvent);
+    }
+}
 
 class Control {
     listeners = [];
@@ -2503,10 +2517,10 @@ const canvas = document.querySelector('canvas');
 const devicePixelRatio = window.devicePixelRatio;
 canvas.width = canvas.clientWidth * devicePixelRatio;
 canvas.height = canvas.clientHeight * devicePixelRatio;
-window.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-});
+window.addEventListener('contextmenu', cancelEvent);
+window.addEventListener('touchmove', cancelEvent);
+window.addEventListener('touchend', cancelEvent);
+window.addEventListener('touchstart', translateTouchStartToMouseEvent);
 let scene = new Scene(canvas);
 let renderer = new Renderer(canvas);
 await renderer.initialized;
