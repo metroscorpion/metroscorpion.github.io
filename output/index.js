@@ -2899,7 +2899,7 @@ class ScreenToWorldInterpreter extends Control {
     }
     updateClickPosition(e) {
         //device pixel ratio might be useful here if it becomes an issue
-        vec4Impl.set(2 * ((e.offsetX / this.canvas.width) - 0.5), -2 * ((e.offsetY / this.canvas.height) - 0.5), -1.0, 1.0, this.clickPosition);
+        vec4Impl.set(2 * ((e.offsetX * this.window.devicePixelRatio / this.canvas.width) - 0.5), -2 * ((e.offsetY * this.window.devicePixelRatio / this.canvas.height) - 0.5), -1.0, 1.0, this.clickPosition);
         return;
     }
     transformClickPositionIntoWorldRay() {
