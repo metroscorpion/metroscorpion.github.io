@@ -1,5 +1,127 @@
 import { v as vec3Impl, m as mat4Impl, a as mat3Impl, b as vec4Impl } from './notMyStuff.js';
 
+class Menu {
+    menu;
+    title = "Metroscorpio's 3D Dodge Game";
+    titleDiv;
+    instructions;
+    pauseText;
+    gameOverText;
+    startButton;
+    restartButton;
+    resumeButton;
+    mainMenuButton;
+    newLine;
+    state;
+    scoreElem = document.createElement('div');
+    constructor() {
+        this.titleDiv = document.createElement('div');
+        this.titleDiv.textContent = this.title;
+        this.menu = document.querySelector('div.menu');
+        this.menu.hidden = false;
+        this.instructions = document.querySelector('#instructions');
+        this.newLine = document.createElement(`br`);
+        this.startButton = document.createElement(`div`);
+        this.startButton.textContent = "Start!";
+        this.startButton.style.width = `fit-content`;
+        this.startButton.style.display = `inline-block`;
+        this.startButton.addEventListener(`mousedown`, (e) => this.unPause(e));
+        this.restartButton = document.createElement('div');
+        this.restartButton.textContent = "Restart";
+        this.restartButton.style.width = `fit-content`;
+        this.restartButton.style.display = `inline-block`;
+        this.restartButton.addEventListener('mousedown', (e) => this.restart(e));
+        this.resumeButton = document.createElement('div');
+        this.resumeButton.textContent = "Resume";
+        this.resumeButton.style.width = `fit-content`;
+        this.resumeButton.style.display = `inline-block`;
+        this.resumeButton.addEventListener('mousedown', (e) => this.unPause(e));
+        this.pauseText = document.createElement(`div`);
+        this.pauseText.textContent = "--PAUSED--";
+        this.pauseText.style.marginTop = "5%";
+        this.mainMenuButton = document.createElement('div');
+        this.mainMenuButton.textContent = "Main Menu";
+        this.mainMenuButton.style.width = `fit-content`;
+        this.mainMenuButton.style.display = `inline-block`;
+        this.mainMenuButton.addEventListener('mousedown', (e) => this.returnToMain(e));
+        this.gameOverText = document.createElement(`div`);
+        this.gameOverText.textContent = "--GAME OVER--";
+        this.gameOverText.style.marginTop = "5%";
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "Escape") {
+                if (this.isPaused()) {
+                    this.unPause(e);
+                }
+                else {
+                    this.showPauseMenu();
+                }
+            }
+        });
+        this.showMainMenu();
+    }
+    returnToMain(e) {
+        let restart = new Event('startNewGame');
+        document.dispatchEvent(restart);
+        this.showMainMenu();
+    }
+    restart(e) {
+        this.state = "inGame";
+        this.menu.hidden = true;
+        let restart = new Event('startNewGame');
+        document.dispatchEvent(restart);
+    }
+    catchEvent(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+    }
+    unPause(e) {
+        this.catchEvent(e);
+        if (!this.menu.hidden) {
+            this.menu.hidden = true;
+            let unpause = new Event('unpause');
+            document.dispatchEvent(unpause);
+        }
+        this.state = "inGame";
+    }
+    showMainMenu() {
+        this.menu.hidden = false;
+        this.state = 'main';
+        this.menu.style.backgroundColor = 'rgba(0,0,0,0)';
+        this.menu.replaceChildren(this.titleDiv, this.newLine, this.startButton, this.newLine, this.instructions);
+    }
+    showPauseMenu() {
+        if (this.state = 'inGame') {
+            this.state = `paused`;
+            this.menu.replaceChildren(this.newLine, this.pauseText, this.newLine, this.resumeButton, this.newLine, this.mainMenuButton);
+            this.menu.style.backgroundColor = 'rgba(0,0,0,0.33)';
+            this.menu.hidden = false;
+        }
+    }
+    checkFocus() {
+        if (!document.hasFocus() && this.state == 'inGame') {
+            this.showPauseMenu();
+        }
+    }
+    isPaused() {
+        return (this.state == "paused");
+    }
+    isInGame() {
+        return (this.state == "inGame");
+    }
+    showGameOver(score) {
+        this.state = "gameOver";
+        this.menu.style.backgroundColor = 'rgba(0,0,0,0.33)';
+        this.scoreElem.textContent = "Time Survived: "
+            + score.getMinutes().toString()
+            + ":"
+            + score.getSeconds().toString().padStart(2, '0');
+        this.menu.replaceChildren(this.gameOverText, this.newLine, this.scoreElem, this.newLine, this.mainMenuButton, this.newLine, this.restartButton);
+        this.menu.hidden = false;
+        return;
+    }
+}
+
 class BindGroupLayouts {
     camera;
     transform;
@@ -890,625 +1012,6 @@ class Pipelines {
     }
 }
 
-const grassFloatsPerVertex = 3;
-/*
-const grassMesh = [
-    -0.25,0.0,0.0,
-    0.25,0.0,0.0,
-    0.25,0.5,0.0,
-    -0.25,0.5,0.0,
-    -0.20,0.8,0.0,
-    0.20,0.8,0.0,
-    0.0,1.0,0.0,
-];
-*/
-/*
-const grassMesh = [
-    0.125,0.0,0.0,
-    -0.125,0.0,0.0,
-    0.125,0.4,0.0,
-    -0.125,0.4,0.0,
-    0.1,0.75,0.0,
-    -0.1,0.75,0.0,
-    0.0,1.0,0.0,
-];
-*/
-const grassMesh = [
-    0.125, 0.0, 0.0,
-    -0.125, 0.0, 0.0,
-    0.125, 0.4, 0.0,
-    -0.125, 0.4, 0.0,
-    0.1, 0.60, 0.0,
-    -0.1, 0.60, 0.0,
-    0.08, 0.85, 0.0,
-    -0.08, 0.85, 0.0,
-    0.0, 1.0, 0.0,
-];
-const grassVertexCount = grassMesh.length / grassFloatsPerVertex;
-let vertexBuffer = undefined;
-function getGrassMesh(device) {
-    if (vertexBuffer !== undefined) {
-        return vertexBuffer;
-    }
-    const vertexArray = new Float32Array(grassMesh);
-    vertexBuffer = device.createBuffer({
-        label: "grass mesh",
-        size: vertexArray.byteLength,
-        usage: GPUBufferUsage.VERTEX,
-        mappedAtCreation: true,
-    });
-    new Float32Array(vertexBuffer.getMappedRange()).set(vertexArray);
-    vertexBuffer.unmap();
-    return vertexBuffer;
-}
-({
-    label: 'bind group layout for grass position',
-    entries: [{
-            binding: 0,
-            visibility: GPUShaderStage.VERTEX,
-            buffer: {
-                type: "read-only-storage",
-            },
-        }]
-});
-//this function takes like 5 miliseconds. i wonder how we should handle loading and if it might be done async.
-function loadClumpLocations(device, size, clumpCount) {
-    const grid = clumpCount;
-    const gridPoints = grid * grid;
-    const floatsPerGridPoint = 4 + 4;
-    const clumpInfoBuffer = device.createBuffer({
-        label: 'Grass clump information buffer',
-        size: (floatsPerGridPoint) * 4 * gridPoints, //two floats per point in the grid
-        usage: GPUBufferUsage.STORAGE,
-        mappedAtCreation: true,
-    });
-    const info = new Float32Array(clumpInfoBuffer.getMappedRange());
-    for (let i = 0; i < gridPoints; i++) {
-        const index = i * floatsPerGridPoint;
-        info[index] = Math.random();
-        info[index + 1] = Math.random();
-        info[index + 2] = Math.random();
-        info[index + 4] = 32 / 255;
-        info[index + 5] = 100 / 255;
-        info[index + 6] = 50 / 255;
-        /*
-        info[index+4]=0.2+0.15*Math.random();
-        info[index+5]=info[index+4]+0.5*Math.random();
-        info[index+6]=0.2*Math.random();
-        */
-    }
-    clumpInfoBuffer.unmap();
-    return clumpInfoBuffer;
-}
-class GrassGraphics {
-    size1D;
-    clumpCount1D;
-    bladesPerGrid1D;
-    gridDimension;
-    grassBladesInGrid;
-    numBlades;
-    active = true;
-    pipeline = undefined;
-    pipelineLayout;
-    vertexBuffer;
-    vertexCount;
-    timeBuffer;
-    bladeInfo;
-    bladeBindGroup;
-    constructor(size1D, clumpCount1D, bladesPerGrid1D) {
-        this.size1D = size1D;
-        this.clumpCount1D = clumpCount1D;
-        this.bladesPerGrid1D = bladesPerGrid1D;
-        //must be integer
-        this.clumpCount1D = Math.floor(this.clumpCount1D);
-        //must be odd
-        if (this.clumpCount1D % 2 === 0) {
-            this.clumpCount1D += 1;
-        }
-        //must be greater than 1 sample point in each dimension. This implies minimum 9 sample points.
-        else if (this.clumpCount1D <= 1) {
-            this.clumpCount1D = 3;
-        }
-        this.gridDimension = (this.clumpCount1D - 1) / 2;
-        this.numBlades = (this.gridDimension * this.gridDimension * this.bladesPerGrid1D * this.bladesPerGrid1D);
-    }
-    isAlreadyInitialized() {
-        return this.pipeline !== undefined;
-    }
-    initialize(device, bindGroupLayouts) {
-        if (!this.isAlreadyInitialized) {
-            return;
-        }
-        //create the pipeline & compile the code
-        const bladeRenderBGLayout = device.createBindGroupLayout({
-            label: 'Grass Blade Info',
-            entries: [{
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: {
-                        type: 'read-only-storage',
-                    }
-                }]
-        });
-        this.pipelineLayout = device.createPipelineLayout({
-            bindGroupLayouts: [
-                bindGroupLayouts.camera,
-                bladeRenderBGLayout,
-            ],
-        }),
-            this.pipeline = this.createGrassPipeline(device, this.pipelineLayout);
-        //allocate GPU Buffers
-        this.bladeInfo = this.createBladeInfo(device);
-        this.bladeBindGroup = device.createBindGroup({
-            layout: bladeRenderBGLayout,
-            entries: [{
-                    binding: 0,
-                    resource: {
-                        buffer: this.bladeInfo,
-                    }
-                }]
-        });
-        this.vertexBuffer = getGrassMesh(device);
-        this.vertexCount = grassVertexCount;
-    }
-    createBladeInfo(device) {
-        //create buffers
-        const clumpLocations = loadClumpLocations(device, this.size1D, this.clumpCount1D);
-        const bladeInfo = device.createBuffer({
-            label: "Blade Information Buffer",
-            size: BLADE_STRUCT_SIZE * this.numBlades,
-            usage: GPUBufferUsage.STORAGE,
-            mappedAtCreation: false,
-        });
-        //create bind groups
-        const clumpComputeBGLayout = device.createBindGroupLayout({
-            label: 'Clump compute info',
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: {
-                        type: "read-only-storage",
-                    },
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: {
-                        type: "storage",
-                    },
-                },
-            ],
-        });
-        const clumpBindGroup = device.createBindGroup({
-            layout: clumpComputeBGLayout,
-            entries: [{
-                    binding: 0,
-                    resource: {
-                        buffer: clumpLocations,
-                    },
-                }, {
-                    binding: 1,
-                    resource: {
-                        buffer: bladeInfo,
-                    },
-                },
-            ],
-        });
-        //create compute pipeline
-        const bladeComputer = device.createComputePipeline({
-            layout: device.createPipelineLayout({
-                bindGroupLayouts: [clumpComputeBGLayout],
-            }),
-            compute: {
-                constants: {
-                    groundSize: this.size1D,
-                    gridDimension: this.gridDimension,
-                    bladePerGroup: this.bladesPerGrid1D,
-                },
-                module: device.createShaderModule({
-                    code: computeCode,
-                }),
-                entryPoint: 'main',
-            },
-        });
-        //execute compute pipeline
-        const encoder = device.createCommandEncoder();
-        const computePass = encoder.beginComputePass();
-        computePass.setPipeline(bladeComputer);
-        computePass.setBindGroup(0, clumpBindGroup);
-        computePass.dispatchWorkgroups(Math.ceil(this.gridDimension / WORKGROUP_SIZE), Math.ceil(this.gridDimension / WORKGROUP_SIZE));
-        computePass.end();
-        device.queue.submit([encoder.finish()]);
-        //delete the clump info buffers
-        clumpLocations.destroy();
-        //return the result
-        return bladeInfo;
-    }
-    createGrassPipeline(device, layout) {
-        const shader = device.createShaderModule({
-            label: "grass blade rendering",
-            code: renderingCode
-        });
-        const pipeline = device.createRenderPipeline({
-            label: "grass pipeline",
-            layout: layout,
-            vertex: {
-                constants: {
-                //gridDimension:this.gridDimension,
-                },
-                module: shader,
-                entryPoint: "grassVert",
-                buffers: [{
-                        arrayStride: 4 * grassFloatsPerVertex,
-                        attributes: [{
-                                shaderLocation: 0,
-                                offset: 0,
-                                format: 'float32x3',
-                            },],
-                    }],
-            },
-            fragment: {
-                module: shader,
-                entryPoint: "grassFragment",
-                targets: [{
-                        format: navigator.gpu.getPreferredCanvasFormat(),
-                    },],
-            },
-            primitive: {
-                topology: "triangle-strip",
-                cullMode: "none",
-            },
-            depthStencil: {
-                depthWriteEnabled: true,
-                depthCompare: "less",
-                format: "depth24plus",
-            },
-        });
-        return pipeline;
-    }
-    writeToBuffers(device) {
-    }
-}
-//TODO: Determine how and where static graphics are supposed to be stored and initialized.
-//const grass = new GrassGraphics(100,100,1);
-//const grass = new GrassGraphics(100,30,30);
-const grass = new GrassGraphics(100, 125, 6);
-const BLADE_STRUCT_NAME = `Blade_Info`;
-const BLADE_STRUCT_DEF = /*wgsl*/ `
-    struct ${BLADE_STRUCT_NAME}{
-        position: vec2f,
-        facing: vec2f,
-        height: f32,
-        tilt:f32,
-        bend:f32,
-        color:vec3f,
-    }
-`;
-//Position(f,f) facing(f,f) total height(f)
-const BLADE_STRUCT_SIZE = 4 * (2 + 2 + 2 + 6);
-const renderingCode = /*wgsl*/ `
-    const PI:f32 = bitcast<f32>(0x40490fdb);
-    //override gridDimension: u32;
-    const size:f32=100.0;
-    const bladePerGroup1D:f32=3.0;
-    const groupSize:f32 = size/bladePerGroup1D;
-    struct VSInput{
-        @location(0) position:vec4f
-    }
-    struct VSOut{
-        @builtin(position)position:vec4f,
-        @location(0)height:f32,
-        @location(1)normal:vec3f,
-        @location(2)color:vec3f,
-    }
-
-    ${BLADE_STRUCT_DEF}
-
-    @group(0) @binding(0) var<uniform> camera:mat4x4f;
-    @group(1) @binding(0) var<storage> bladeInfo:array<${BLADE_STRUCT_NAME}>;
-
-    fn getOffset(instance:u32,maxInstance1D:f32,size:f32)->vec2f{
-        let i=f32(instance);
-        var group:vec2f = vec2f(
-            i%maxInstance1D,
-            floor(i/maxInstance1D)%maxInstance1D
-        )*(size/(maxInstance1D));
-        return vec2f((group.x-size/2),(group.y-size/2));
-    }
-
-    //you need to sample the 9 closest points, so it'd be useful to get x and y separately.
-    //that does mean that you have to flatten this into a linear address after you get it back.
-    /*
-    fn getGroup(instance:u32)->vec2u{
-        return vec2u(instance%gridDimension,(instance/gridDimension));
-    }
-    */
-
-    fn calculateNormal(facing:vec2f,tilt:f32)->vec3f{
-        let angle = clamp(tilt,-1,1)*(PI/2-0.01);
-        return vec3f(
-            facing.x,
-            tan(angle),
-            facing.y,
-        );
-    }
-
-    fn tilt(position:vec4f,amount:f32)->vec4f{
-        //return vec4f(position.x,position.y*cos(angle),position.y*sin(angle)+position.z*cos(angle),position.w);
-        //let angle = clamp(amount,-1,1)*(PI/2-0.01);
-        let angle:f32 = 0;
-        return vec4f(
-            position.x,
-            position.y*cos(-angle),
-            position.y*sin(-angle),
-            position.w
-        );
-        /*
-        return vec4f(
-            position.x,
-            position.y*cos(-angle)-position.z*sin(rads),
-            position.y*sin(-angle)+position.z*cos(rads),
-            position.w
-        );
-        */
-    }
-
-    fn rotateToFace(position:vec4f,facing:vec2f)->vec4f{
-        let rads = atan2(facing.y,facing.x) + (PI/2);
-        //return vec4f(position.x*cos(rads),position.y,position.x*sin(rads),position.w);
-        return vec4f(position.x*cos(rads)-position.z*sin(rads),position.y,position.x*sin(rads)+position.z*cos(rads),position.w);
-    }
-
-    @vertex
-    fn grassVert(@builtin(instance_index) instance:u32, vertex:VSInput) -> VSOut{
-        let blade:${BLADE_STRUCT_NAME} = bladeInfo[instance];
-        var output:VSOut;
-        /*
-        let rot = rotateToFace(vertex.position,blade.facing);
-        let pos = (rot+vec4f(blade.position.x,0,blade.position.y,0));
-        let heightScaled = vec4f(pos.x,pos.y*blade.height,pos.zw);
-        output.position = camera*heightScaled;
-        */
-        /*
-        let transforms = mat4x4f(
-            vec4f(1,0,0,0),
-            vec4f(0,blade.height,0,0),
-            vec4f(0,0,1,0),
-            vec4f(blade.position.x,0,blade.position.y,1),
-        );
-        let rotated = rotateToFace(vertex.position,blade.facing);
-        output.position = camera*transforms*rotated;
-        */
-        /*
-        let stretched = vec4f(pos.x,pos.y*blade.height,pos.zw);
-        let tilted;
-        let rotated;
-        let moved;
-        */
-        /*
-        var transformed = vertex.position;
-        //stretch
-        transformed.y *= blade.height;
-        //tilt
-        transformed = tilt(transformed,blade.tilt);
-        //rotate
-        transformed = rotateToFace(transformed,blade.facing);
-        
-        //move
-        transformed.x += blade.position.x;
-        transformed.z += blade.position.y;
-        
-        //set outputs
-        output.position = camera*transformed;
-        */
-        
-        let scale = mat4x4f(
-            1,0,0,0,
-            0,blade.height*0.33,0,0,
-            0,0,1,0,
-            0,0,0,1,
-        );
-        let facingAngle = atan2(blade.facing.y,blade.facing.x) + (PI/2);
-        let cRot = cos(facingAngle);
-        let sRot = sin(facingAngle);
-        
-        let rotate = mat4x4f(
-            cRot,0,sRot,0,
-            0,1,0,0,
-            -sRot,0,cRot,0,
-            0,0,0,1,
-        );
-
-        
-        let tiltRadians = -((clamp(blade.tilt,-1,1))*((PI/2)-0.01));
-        //let tiltRadians = -1*(PI/2)+0.02;
-        let tilt = mat4x4f(
-            1,0,0,0,
-            0,cos(tiltRadians),sin(tiltRadians),0,
-            0,-sin(tiltRadians),cos(tiltRadians),0,
-            0,0,0,1
-        );
-        
-        /*
-        let tiltRadians = -((1-clamp(blade.tilt,-1,1))*((PI/2)-0.01));
-        let cosTilt = cos(tiltRadians);
-        let sinTilt = sin(tiltRadians);
-
-        let tiltInFacingDirection = mat4x4f(
-            cRot,(-sRot)*sinTilt,(-sRot)*cosTilt,0,
-            0,cosTilt,sinTilt,0,
-            sRot,cRot*(-sinTilt),cRot*cosTilt,0,
-            0,0,0,1
-        );
-        */
-        
-
-        let translate = mat4x4f(
-            vec4f(1,0,0,0),
-            vec4f(0,1,0,0),
-            vec4f(0,0,1,0),
-            vec4f(blade.position.x,0,blade.position.y,1),
-        );
-        //let transformMatrix = translate*tilt*rotate*scale;
-        
-        let transformMatrix = translate*rotate*tilt*scale;
-        let bendAmount:f32 = 0.33*sin(vertex.position.y*PI); 
-        let bentPosition:vec4f = vec4f(vertex.position.xy,vertex.position.z-bendAmount,vertex.position.w);
-        output.position = camera*transformMatrix*bentPosition;
-        output.height = vertex.position.y;
-        output.normal = (transpose((1/determinant(transformMatrix))*transformMatrix)*vec4f(vertex.position.xy,1,vertex.position.w)).xyz;
-        //output.normal = (transpose((1/determinant(transformMatrix))*transformMatrix)*bentPosition).xyz;
-        output.color = blade.color;
-        return output;        
-    }
-
-    const lightDirection = vec3f(-1.0,-1.0,-1.0);
-
-    @fragment
-    fn grassFragment(@builtin(front_facing) front:bool,fragIn:VSOut) -> @location(0) vec4f{
-        
-        var normal:vec3f;
-        if(!front){
-            normal = normalize(fragIn.normal);
-        }
-        else{
-            normal = -1*normalize(fragIn.normal);
-        }
-        
-        //let normal = normalize(fragIn.normal);
-        let light:f32 = dot(normal,-lightDirection);
-        //let color:vec3f = vec3f(0.2,0.5*fragIn.height,0.2)*light;
-        //let color:vec3f = vec3f(0.0,0.3*fragIn.height,0.0)+vec3f(0.2,0.2,0.2)*light;
-        let color:vec3f = fragIn.color*fragIn.height+vec3f(0.2,0.2,0.2)*light;
-        //let color:vec3f = vec3f(0.1,1.0,0.1)*light;
-        return vec4f(color.rgb,1.0);
-        //return vec4f(0.2,0.5*fragIn.height,0.2,1.0);
-    }
-`;
-const WORKGROUP_SIZE = 8;
-const computeCode = /*wgsl*/ `
-    override groundSize: f32;
-    override gridDimension: u32;
-    override gridSize:f32 = groundSize/f32(gridDimension);
-    
-    override bladePerGroup: u32;
-
-    const PI:f32 = bitcast<f32>(0x40490fdb);
-
-    struct ClumpInfo{
-        position:vec2f,
-        height:f32,
-        color:vec3f,
-    }
-
-    ${BLADE_STRUCT_DEF}
-
-    @group(0) @binding(0) var<storage> clumpInfo: array<ClumpInfo>;
-    @group(0) @binding(1) var<storage, read_write> bladeInfo: array<${BLADE_STRUCT_NAME}>;
-
-    fn flattenGridIndex(grassBladeIdx:vec2u)->u32{
-        return (grassBladeIdx.y * gridDimension) + grassBladeIdx.x;
-    }
-
-    fn flattenBladeIndex(groupIdx:vec2u, bladeIdx:vec2u)->u32{
-        return (((groupIdx.y * gridDimension)+groupIdx.x)*bladePerGroup*bladePerGroup) + ((bladeIdx.y*bladePerGroup)+bladeIdx.x);
-    }
-
-    fn getClosestClumpPos(gridId:vec2u, bladePos:vec2f)->vec2f{
-        var closestClump:vec2f = getClumpPos(gridId);
-        var closestDist:f32 = 0;
-        var first:bool = true;
-        for(var i:i32 = -1; i<2; i++){
-            for(var j:i32 = -1; j<2; j++){
-                let clumpId = vec2i(gridId) + vec2i(i,j);
-                if(clumpId.x>=i32(gridDimension)||clumpId.y>=i32(gridDimension)||clumpId.x<0||clumpId.y<0){
-                    continue;
-                }
-                let clumpPos:vec2f = getClumpPos(vec2u(clumpId));
-                let dist:f32 = distance(bladePos,clumpPos);
-                if(first || dist<closestDist){
-                    first = false;
-                    closestDist = dist;
-                    closestClump = clumpPos;
-                }
-            }
-        }
-        return closestClump;
-    }
-
-    fn getClosestClumpId(gridId:vec2u, bladePos:vec2f)->vec2u{
-        var closestClump:vec2u = gridId;
-        var closestDist:f32 = 0;
-        var first:bool = true;
-        for(var i:i32 = -1; i<2; i++){
-            for(var j:i32 = -1; j<2; j++){
-                let clumpId = vec2i(gridId) + vec2i(i,j);
-                if(clumpId.x>=i32(gridDimension)||clumpId.y>=i32(gridDimension)||clumpId.x<0||clumpId.y<0){
-                    continue;
-                }
-                let clumpPos:vec2f = getClumpPos(vec2u(clumpId));
-                let dist:f32 = distance(bladePos,clumpPos);
-                if(first || dist<closestDist){
-                    first = false;
-                    closestDist = dist;
-                    closestClump = vec2u(clumpId);
-                }
-            }
-        }
-        return closestClump;
-    }
-
-    fn getClumpPos(clumpId:vec2u)->vec2f{
-        return getGridPosition(clumpId) + gridSize*(clumpInfo[flattenGridIndex(clumpId)].position);
-    }
-
-    fn getGridPosition(gridId:vec2u)->vec2f{
-        return (vec2f(gridId)*gridSize)-vec2f(groundSize/2,groundSize/2);
-    }
-
-    fn getBladePosition(gridId:vec2u, bladeId:vec2u)->vec2f{
-        return getGridPosition(gridId) + (vec2f(bladeId)*(gridSize/f32(bladePerGroup)));
-    }
-    
-    @compute
-    @workgroup_size(${WORKGROUP_SIZE},${WORKGROUP_SIZE})
-    fn main(@builtin(global_invocation_id) globalId:vec3u){
-        let gridId:vec2u = vec2u(globalId.xy);
-        if(gridId.x>=gridDimension||gridId.y>=gridDimension){
-            return;
-        }
-        for(var i:u32=0;i<bladePerGroup;i++){
-            for(var j:u32=0;j<bladePerGroup;j++){
-                let bladeIndex = vec2u(i,j);
-                var blade:${BLADE_STRUCT_NAME};
-                let bladeWorldPosition:vec2f = getBladePosition(gridId,bladeIndex);
-                let closestClumpId:vec2u = getClosestClumpId(gridId,bladeWorldPosition);
-                let closestClumpPosition:vec2f = getClumpPos(closestClumpId);
-                
-                var ratio:f32 = clamp(1-(distance(bladeWorldPosition, closestClumpPosition)/gridSize),0,1);
-                blade.position = bladeWorldPosition;
-                blade.position = mix(bladeWorldPosition, closestClumpPosition,ratio);
-                //blade.position = mix(bladeWorldPosition, closestClumpPosition,0.1);
-                blade.facing = normalize(blade.position - closestClumpPosition);                
-                /*
-                blade.height=1;
-                blade.tilt=0;
-                blade.facing=vec2f(0,0);
-                */
-              
-                blade.height = clumpInfo[flattenGridIndex(closestClumpId)].height+0.7+(1-ratio*ratio);
-                blade.tilt = 0.45*(1-ratio);
-                blade.bend = ratio;
-             
-                blade.color = clumpInfo[flattenGridIndex(closestClumpId)].color;
-                bladeInfo[flattenBladeIndex(gridId,bladeIndex)]=blade;
-            }
-        }
-        return;
-    }
-`;
-
 class Renderer {
     adapter;
     device;
@@ -1558,8 +1061,6 @@ class Renderer {
                     depthStoreOp: 'store',
                 },
             };
-            //TODO: Determine how static graphics should be initialized
-            grass.initialize(this.device, this.bindGroupLayouts);
             return true;
         });
     }
@@ -1593,13 +1094,6 @@ class Renderer {
         const commandEncoder = this.device.createCommandEncoder();
         {
             const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
-            /*
-            passEncoder.setPipeline(grass.pipeline);
-            passEncoder.setBindGroup(0,camera.bindGroup);
-            passEncoder.setBindGroup(1,grass.bladeBindGroup);
-            passEncoder.setVertexBuffer(0,grass.vertexBuffer);
-            passEncoder.draw(grass.vertexCount,grass.numBlades);
-            */
             passEncoder.setPipeline(this.pipelines.simple);
             passEncoder.setBindGroup(0, camera.bindGroup);
             for (let simple of graphics.simples) {
@@ -2099,6 +1593,8 @@ class Camera extends Entity {
     setAspect(aspect) {
         this.aspect = aspect;
         this.projection = mat4Impl.perspective(this.fieldOfView, this.aspect, 1, 100);
+        mat4Impl.invert(this.transformMatrix, this.view);
+        mat4Impl.multiply(this.projection, this.view, this.viewProjectionMatrix);
     }
     destructor(controls, systems) {
     }
@@ -3280,12 +2776,14 @@ function cancelEvent(e) {
 }
 function translateTouchStartToMouseEvent(e) {
     if (e.type !== 'touchstart') {
-        cancelEvent(e);
+        return;
     }
     for (let touch of e.changedTouches) {
-        //touch['button']=2;
-        let mouseEventInit = { ...touch, button: 2 };
-        let mouseEvent = new MouseEvent('mousedown', mouseEventInit);
+        let mouseEvent = new MouseEvent('mousedown', {
+            button: 2,
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+        });
         if (e.target !== null) {
             e.target.dispatchEvent(mouseEvent);
         }
@@ -3400,7 +2898,8 @@ class ScreenToWorldInterpreter extends Control {
         this.canvas.addEventListener('mousedown', (e) => this.translateClickToWorld(e), { signal: abortController.signal });
     }
     updateClickPosition(e) {
-        vec4Impl.set(2 * ((e.offsetX * this.window.devicePixelRatio / this.canvas.width) - 0.5), -2 * ((e.offsetY * this.window.devicePixelRatio / this.canvas.height) - 0.5), -1.0, 1.0, this.clickPosition);
+        //device pixel ratio might be useful here if it becomes an issue
+        vec4Impl.set(2 * ((e.offsetX / this.canvas.width) - 0.5), -2 * ((e.offsetY / this.canvas.height) - 0.5), -1.0, 1.0, this.clickPosition);
         return;
     }
     transformClickPositionIntoWorldRay() {
@@ -5423,6 +4922,26 @@ class HealthPackSpawner extends Entity {
     }
 }
 
+class Score {
+    time;
+    fireballsDodged;
+    healthCollected;
+    constructor() {
+        this.time = 0;
+        this.fireballsDodged = 0;
+        this.healthCollected = 0;
+    }
+    update(deltaTime) {
+        this.time += deltaTime;
+    }
+    getMinutes() {
+        return Math.floor(Math.floor(this.time) / 60);
+    }
+    getSeconds() {
+        return Math.floor(this.time) % 60;
+    }
+}
+
 const sceneSize = 100;
 const origin = vec3Impl.fromValues(0, 0, 0);
 class Scene {
@@ -5437,6 +4956,7 @@ class Scene {
     systems;
     entities = [];
     graphicsOrganizer = new GraphicsOrganizer();
+    score = new Score();
     constructor(canvas) {
         this.canvas = canvas;
         this.camera = new TopCamera(this.canvas);
@@ -5497,6 +5017,9 @@ class Scene {
     isGameOver() {
         return this.player.health <= 0;
     }
+    getScore() {
+        return this.score;
+    }
     update(deltaTime) {
         this.processDeletedEntities();
         for (const entity of this.entities) {
@@ -5506,6 +5029,9 @@ class Scene {
             entity.update(deltaTime);
         }
         this.systems.execute();
+        if (!this.isGameOver()) {
+            this.score.update(deltaTime);
+        }
     }
     removeEventListeners() {
         this.controls.abortEventListeners();
@@ -5516,10 +5042,11 @@ const canvas = document.querySelector('canvas');
 const devicePixelRatio = window.devicePixelRatio;
 canvas.width = canvas.clientWidth * devicePixelRatio;
 canvas.height = canvas.clientHeight * devicePixelRatio;
-window.addEventListener('contextmenu', cancelEvent);
-window.addEventListener('touchmove', cancelEvent);
-window.addEventListener('touchend', cancelEvent);
-window.addEventListener('touchstart', translateTouchStartToMouseEvent);
+window.addEventListener('contextmenu', cancelEvent, { passive: false });
+window.addEventListener('touchmove', cancelEvent, { passive: false });
+window.addEventListener('touchend', cancelEvent, { passive: false });
+window.addEventListener('touchstart', translateTouchStartToMouseEvent, { passive: false });
+let menu = new Menu();
 let scene = new Scene(canvas);
 let renderer = new Renderer(canvas);
 await renderer.initialized;
@@ -5529,10 +5056,10 @@ function onCanvasResize(entries) {
         canvas.height = Math.max(1, entry.devicePixelContentBoxSize[0].blockSize);
     }
     scene.onResize();
+    renderer.render(scene.graphicsOrganizer);
 }
 const resizeObserver = new ResizeObserver(onCanvasResize);
 resizeObserver.observe(canvas);
-let paused = false;
 //time in miliseconds.
 let lastFrameMS = performance.now();
 const MIN_ALLOWABLE_FRAMERATE = 20;
@@ -5540,32 +5067,34 @@ function frame() {
     const now = performance.now();
     const deltaTime = (now - lastFrameMS) / 1000;
     lastFrameMS = now;
-    if (!document.hasFocus()) {
-        paused = true;
-        //TODO: Render a --PAUSED-- overlay over the screen before pausing.
-        renderer.render(scene.graphicsOrganizer);
-        return;
-    }
+    menu.checkFocus();
     //TODO:flesh out states and transitions for current scene based on state. Game over scene, tutorial scene, Main menu scene, etc...
     if (scene.isGameOver()) {
-        paused = true;
         scene.removeEventListeners();
-        scene = new Scene(canvas);
+        menu.showGameOver(scene.getScore());
+        return;
+    }
+    if (!menu.isInGame()) {
+        renderer.render(scene.graphicsOrganizer);
         return;
     }
     //large spans of time due to either being minimized or lag are simply discarded. 
     //Not sure how well this works, but we do not want the game state to change significantly if it cannot be displayed to the screen.
     if (deltaTime <= 1 / MIN_ALLOWABLE_FRAMERATE) {
         scene.update(deltaTime);
-        renderer.render(scene.graphicsOrganizer);
     }
+    renderer.render(scene.graphicsOrganizer);
     requestAnimationFrame(frame);
     return;
 }
 requestAnimationFrame(frame);
-document.addEventListener('pointerdown', (e) => {
-    if (paused) {
-        paused = false;
-        requestAnimationFrame(frame);
-    }
+document.addEventListener('startNewGame', (e) => {
+    scene.removeEventListeners();
+    scene = new Scene(canvas);
+    requestAnimationFrame(frame);
+    scene.onResize();
+    renderer.render(scene.graphicsOrganizer);
+});
+document.addEventListener('unpause', (e) => {
+    requestAnimationFrame(frame);
 });
